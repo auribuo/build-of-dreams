@@ -1,5 +1,10 @@
-# Vue 3 + TypeScript + Vite
+# Build of Dreams
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A character build creator for Shape of Dreams
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## License
+
+The code of this app is licensed under the MIT license (see LICENSE) with exception
+of the `public/data` folder which has its own terms listed in `public/data/Readme.txt`
+
+Thanks to the devs for making this data usable to the playerbase!
