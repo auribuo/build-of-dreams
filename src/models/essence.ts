@@ -1,8 +1,7 @@
-import essences from "../../public/data/en-US/essences.json";
+import type essences from "../../public/data/en-US/essences.json";
 import type { Rarity } from "./rarity";
 
-const essenceNames = Object.keys(essences) as (keyof typeof essences)[];
-type EssenceName = (typeof essenceNames)[number];
+type EssenceName = keyof typeof essences;
 type EssenceData = {
     name: string;
     description: string;
@@ -33,4 +32,4 @@ type Essences = {
     [K in EssenceName]: EssenceData;
 };
 
-export { essenceNames, type EssenceName, type EssenceData, type Essences };
+export { type EssenceName, type EssenceData, type Essences };

@@ -11,7 +11,7 @@ class ItemSocket<T extends "essence" | "memory"> {
         if (this.slot !== undefined) {
             return false;
         }
-        return this.kind === item.type;
+        return this.kind === item.kind;
     };
 }
 
@@ -22,8 +22,14 @@ class EssenceSocket extends ItemSocket<"essence"> {
 }
 
 class MemorySocket extends ItemSocket<"memory"> {
-    constructor(initialItem: Item<"memory"> | undefined = undefined) {
+    constructor(
+        initialItem: Item<"memory"> | undefined = undefined,
+        initialEssences: [EssenceSocket, EssenceSocket, EssenceSocket] | undefined = undefined
+    ) {
         super("memory", initialItem);
+        if (initialEssences) {
+            this.essences = initialEssences;
+        }
     }
     public essences: [EssenceSocket, EssenceSocket, EssenceSocket] = [
         new EssenceSocket(),

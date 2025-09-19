@@ -1,10 +1,11 @@
-import travelers from "../../public/data/en-US/travelers.json";
+import type travelers from "../../public/data/en-US/travelers.json";
 import { MemorySocket } from "./socket";
 import type { Memories, MemoryName } from "./memories";
-import { mapMemory } from "./item";
+import { mapMemory, type Item, type ItemId, type Memory } from "./item";
+import LZString from "lz-string";
+import type { Reactive } from "vue";
 
-const travelerNames = Object.keys(travelers) as (keyof typeof travelers)[];
-type TravelerName = (typeof travelerNames)[number];
+type TravelerName = keyof typeof travelers;
 type TravelerData = {
     name: string;
     subtitle: string;
@@ -74,16 +75,6 @@ type Travelers = {
     [K in TravelerName]: TravelerData;
 };
 
-interface Passive {
-    name: string;
-    description: string;
-}
-
-interface Dash {
-    name: string;
-    description: string;
-}
-
 type Traveler = {
     id: TravelerName;
     data: TravelerData;
@@ -92,9 +83,72 @@ type Traveler = {
 type BuildTraveler = Traveler & {
     loadout: {
         memories: [MemorySocket, MemorySocket, MemorySocket, MemorySocket];
-        dash: Dash;
-        passive: Passive;
+        dash: Item<"memory">;
+        passive: Item<"memory">;
     };
+};
+
+type SerializedEssenceSocket = {
+    i: ItemId<"essence"> | undefined;
+};
+type SerializedMemorySocket = {
+    i: ItemId<"memory"> | undefined;
+    e: [SerializedEssenceSocket, SerializedEssenceSocket, SerializedEssenceSocket];
+};
+
+type SerializedTraveler = {
+    i: TravelerName;
+    l: {
+        m: [SerializedMemorySocket, SerializedMemorySocket, SerializedMemorySocket, SerializedMemorySocket];
+        d: ItemId<"memory">;
+        p: ItemId<"memory">;
+    };
+};
+
+const serializeBuild = <T extends BuildTraveler | Reactive<BuildTraveler>>(traveler: T): string => {
+    const ser: SerializedTraveler = {
+        i: traveler.id,
+        l: {
+            m: [
+                {
+                    i: traveler.loadout.memories[0].slot?.id,
+                    e: [
+                        { i: traveler.loadout.memories[0].essences[0].slot?.id },
+                        { i: traveler.loadout.memories[0].essences[1].slot?.id },
+                        { i: traveler.loadout.memories[0].essences[2].slot?.id },
+                    ],
+                },
+                {
+                    i: traveler.loadout.memories[1].slot?.id,
+                    e: [
+                        { i: traveler.loadout.memories[1].essences[0].slot?.id },
+                        { i: traveler.loadout.memories[1].essences[1].slot?.id },
+                        { i: traveler.loadout.memories[1].essences[2].slot?.id },
+                    ],
+                },
+                {
+                    i: traveler.loadout.memories[2].slot?.id,
+                    e: [
+                        { i: traveler.loadout.memories[2].essences[0].slot?.id },
+                        { i: traveler.loadout.memories[2].essences[1].slot?.id },
+                        { i: traveler.loadout.memories[2].essences[2].slot?.id },
+                    ],
+                },
+                {
+                    i: traveler.loadout.memories[3].slot?.id,
+                    e: [
+                        { i: traveler.loadout.memories[3].essences[0].slot?.id },
+                        { i: traveler.loadout.memories[3].essences[1].slot?.id },
+                        { i: traveler.loadout.memories[3].essences[2].slot?.id },
+                    ],
+                },
+            ],
+            d: traveler.loadout.dash.id,
+            p: traveler.loadout.passive.id,
+        },
+    };
+    const s = JSON.stringify(ser);
+    return LZString.compressToBase64(s);
 };
 
 const initTraveler = (id: TravelerName, travelers: Travelers, memories: Memories): BuildTraveler => {
@@ -108,18 +162,29 @@ const initTraveler = (id: TravelerName, travelers: Travelers, memories: Memories
                 new MemorySocket(),
                 new MemorySocket(travelers[id].loadoutR.map((id) => mapMemory([id, memories[id]]))[0]),
             ],
-            dash: travelers[id].loadoutMovement.map((id) => memories[id])[0]!,
-            passive: travelers[id].loadoutTrait.map((id) => memories[id])[0]!,
+            dash: travelers[id].loadoutMovement.map((id) => mapMemory([id, memories[id]]))[0]!,
+            passive: travelers[id].loadoutTrait.map((id) => mapMemory([id, memories[id]]))[0]!,
         },
     };
 };
 
+const defaultQ = (traveler: TravelerName, travelers: Travelers, memories: Memories): Memory => {
+    return travelers[traveler].loadoutQ.map((id) => mapMemory([id, memories[id]]))[0];
+};
+
+const defaultR = (traveler: TravelerName, travelers: Travelers, memories: Memories): Memory => {
+    return travelers[traveler].loadoutR.map((id) => mapMemory([id, memories[id]]))[0];
+};
+
 export {
-    travelerNames,
     type TravelerName,
     type TravelerData,
     type Travelers,
     type Traveler,
     type BuildTraveler,
+    type SerializedTraveler,
     initTraveler,
+    serializeBuild,
+    defaultQ,
+    defaultR,
 };

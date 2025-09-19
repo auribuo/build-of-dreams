@@ -9,10 +9,8 @@ type ItemData<T extends ItemType> = T extends "memory" ? MemoryData : EssenceDat
 
 interface Item<T extends ItemType> {
     id: ItemId<T>;
-    name: string;
-    description: string;
     data: ItemData<T>;
-    type: T;
+    kind: T;
     max_pool: T extends "memory" ? 1 | 2 | 4 : 1;
     remaining_pool: T extends "memory" ? 0 | 1 | 2 | 3 | 4 : 0 | 1;
 }
@@ -24,10 +22,8 @@ const mapMemory = (kv: [string, MemoryData]): Memory => {
     const max_pool = kv[1].rarity == "Character" ? (kv[1].traveler == "Hero_Bismuth" ? 2 : 1) : 4;
     return {
         id: kv[0] as MemoryName,
-        name: kv[1].name,
         data: kv[1],
-        description: kv[1].description,
-        type: "memory",
+        kind: "memory",
         max_pool: max_pool,
         remaining_pool: max_pool,
     };
@@ -36,10 +32,8 @@ const mapMemory = (kv: [string, MemoryData]): Memory => {
 const mapEssence = (kv: [string, EssenceData]): Essence => {
     return {
         id: kv[0] as EssenceName,
-        name: kv[1].name,
         data: kv[1],
-        description: kv[1].description,
-        type: "essence",
+        kind: "essence",
         max_pool: 1,
         remaining_pool: 1,
     };
@@ -48,9 +42,48 @@ const mapEssence = (kv: [string, EssenceData]): Essence => {
 const compareItem = <T extends ItemType>(a: Item<T>, b: Item<T>): number => {
     const rc = compareRarity(a.data.rarity, b.data.rarity);
     if (rc === 0) {
-        return a.name.localeCompare(b.name);
+        return a.data.name.localeCompare(b.data.name);
     }
     return rc;
 };
 
-export { itemTypes, type ItemType, type Item, type Essence, type Memory, mapEssence, mapMemory, compareItem };
+const itemType = (id: ItemId<"essence" | "memory">): ItemType => {
+    if (id.startsWith("Gem")) {
+        return "essence";
+    }
+    return "memory";
+};
+
+type ItemList = Memory[] | Essence[];
+
+const renderDescription = (desc: string, breakLines: boolean = true): string => {
+    const colorRx = /<color=([a-z]+|#[a-zA-Z0-9]{6})>(.+?)<\/color>/gm;
+    desc = desc.replace(colorRx, (_match, color, content) => {
+        return `<span style="color: ${color}">${content}</span>`;
+    });
+
+    const spriteRx = /<sprite=([0-9]+)>/gm;
+    desc = desc.replace(spriteRx, (_match, _spriteId) => {
+        return ""; // `<img src="/data/!Sprites/${spriteId}.png" height="20" width="20" style="vertical-align: middle;" />`;
+    });
+
+    if (breakLines) {
+        desc = desc.split(". ").join(". <br />");
+    }
+    return desc;
+};
+
+export {
+    itemTypes,
+    type ItemType,
+    type Item,
+    type ItemId,
+    type Essence,
+    type Memory,
+    type ItemList,
+    mapEssence,
+    mapMemory,
+    compareItem,
+    itemType,
+    renderDescription,
+};

@@ -1,18 +1,18 @@
 <script setup lang="ts">
+import { darkTheme, NConfigProvider, NGlobalStyle } from 'naive-ui';
 import BuildView from './views/BuildView.vue';
-
 </script>
 
 <template>
-  <Suspense>
-    <BuildView></BuildView>
-    <template #fallback>
-      Loading...
-    </template>
-  </Suspense>
+  <NConfigProvider :theme="darkTheme">
+    <NGlobalStyle></NGlobalStyle>
+    <main>
+      <Suspense>
+        <BuildView></BuildView>
+        <template #fallback>
+          Loading...
+        </template>
+      </Suspense>
+    </main>
+  </NConfigProvider>
 </template>
-<style scoped>
-.transition-colors {
-  transition: background-color 0.2s, border-color 0.2s;
-}
-</style>

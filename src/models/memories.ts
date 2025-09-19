@@ -1,9 +1,8 @@
-import memories from "../../public/data/en-US/memories.json";
+import type memories from "../../public/data/en-US/memories.json";
 import type { Rarity } from "./rarity";
 import type { TravelerName } from "./travelers";
 
-const memoryNames = Object.keys(memories) as (keyof typeof memories)[];
-type MemoryName = (typeof memoryNames)[number];
+type MemoryName = keyof typeof memories;
 type MemoryData = {
     name: string;
     cooldownTime: number;
@@ -41,4 +40,4 @@ type Memories = {
     [K in MemoryName]: MemoryData;
 };
 
-export { memoryNames, type MemoryName, type MemoryData, type Memories };
+export { type MemoryName, type MemoryData, type Memories };
