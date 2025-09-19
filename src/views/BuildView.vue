@@ -119,7 +119,7 @@ if (!essences.value) {
 }
 
 let traveler: Reactive<BuildTraveler>;
-const decompressed = LZString.decompressFromBase64(window.location.search.substring(1).split("&").find(q => q.startsWith('build'))?.split("=").slice(1).reduce((acc, current, idx) => {if (current == "") current = "="; return acc + current}) ?? "")
+const decompressed = LZString.decompressFromBase64(window.location.search.substring(1).split("&").find(q => q.startsWith('build'))?.split("=").slice(1).reduce((acc, current) => {if (current == "") current = "="; return acc + current}) ?? "")
 if (decompressed) {
     const serTrav: SerializedTraveler = JSON.parse(decompressed)
     traveler = reactive<BuildTraveler>({
