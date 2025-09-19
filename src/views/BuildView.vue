@@ -119,7 +119,7 @@ if (!essences.value) {
 }
 
 let traveler: Reactive<BuildTraveler>;
-const decompressed = LZString.decompressFromBase64(window.location.pathname.substring(1))
+const decompressed = LZString.decompressFromBase64(window.location.search.split("&").find(q => q.startsWith('build')).split("=")[1])
 if (decompressed) {
     const serTrav: SerializedTraveler = JSON.parse(decompressed)
     traveler = reactive<BuildTraveler>({
@@ -192,7 +192,7 @@ if (decompressed) {
     traveler = reactive(initTraveler("Hero_Lacerta", travelers.value, memories.value))
 }
 watch(traveler, () => {
-    history.pushState(null, "", `/${serializeBuild(traveler)}`)
+    history.pushState(null, "", `/build-of-dreams?build=${serializeBuild(traveler)}`)
 })
 const startingQ = traveler.loadout.memories[0].slot!
 const startingR = traveler.loadout.memories[3].slot!
