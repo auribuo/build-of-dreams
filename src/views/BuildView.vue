@@ -119,7 +119,7 @@ if (!essences.value) {
 }
 
 let traveler: Reactive<BuildTraveler>;
-const decompressed = LZString.decompressFromBase64(window.location.search.split("&").find(q => q.startsWith('build')).split("=")[1])
+const decompressed = LZString.decompressFromBase64(window.location.search.split("&").find(q => q.startsWith('build'))?.split("=")[1])
 if (decompressed) {
     const serTrav: SerializedTraveler = JSON.parse(decompressed)
     traveler = reactive<BuildTraveler>({
