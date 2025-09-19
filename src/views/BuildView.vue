@@ -106,15 +106,15 @@ const essenceList = ref<Essence[]>()
 const memoryList = ref<Memory[]>()
 
 if (!travelers.value) {
-    const resp = await axios.get<Travelers>(`/data/${locale.value}/travelers.json`)
+    const resp = await axios.get<Travelers>(`/build-of-dreams/data/${locale.value}/travelers.json`)
     travelers.value = resp.data
 }
 if (!memories.value) {
-    const resp = await axios.get<Memories>(`/data/${locale.value}/memories.json`)
+    const resp = await axios.get<Memories>(`/build-of-dreams/data/${locale.value}/memories.json`)
     memories.value = resp.data
 }
 if (!essences.value) {
-    const resp = await axios.get<Essences>(`/data/${locale.value}/essences.json`)
+    const resp = await axios.get<Essences>(`/build-of-dreams/data/${locale.value}/essences.json`)
     essences.value = resp.data
 }
 

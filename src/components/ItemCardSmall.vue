@@ -4,7 +4,7 @@
         <div class="w-[70px] h-[70px] relative">
             <img :id="`img_${item.id}`" class="absolute rounded-lg bg-gray-800 z-0"
                 :class="[item.kind === 'essence' ? 'p-2' : 'p-0.5']" draggable="false"
-                :src="`/data/!Images/${item.data.image}`"></img>
+                :src="`/build-of-dreams/data/!Images/${item.data.image}`"></img>
             <div v-if="disabled" class="absolute w-full h-full z-10 rounded-sm bg-gray-600/40">
             </div>
         </div>
