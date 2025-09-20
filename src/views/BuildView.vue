@@ -241,10 +241,14 @@ const memories = ref<Memories>((await axios.get<Memories>(`/build-of-dreams/data
 const loadBuild = (build: string) => {
     const decompressed = LZString.decompressFromBase64(build)
     if (decompressed) {
-        const serTrav: SerializedTraveler = JSON.parse(decompressed)
-        traveler.value = deserializeBuild(serTrav, memories.value!, essences.value!, travelers.value!)
-        emit('characterChange', traveler.value as BuildTraveler)
-        message.success("Loaded build")
+        try {
+            const serTrav: SerializedTraveler = JSON.parse(decompressed)
+            traveler.value = deserializeBuild(serTrav, memories.value!, essences.value!, travelers.value!)
+            emit('characterChange', traveler.value as BuildTraveler)
+            message.success("Loaded build")
+        } catch {
+            message.error("An unexpected error occurred while loading the build")
+        }
     } else {
         message.error("Failed to read valid build from clipboard. Make sure you use 'Copy build'")
     }
@@ -254,7 +258,7 @@ let traveler = ref<Reactive<BuildTraveler>>(reactive(initTraveler("Hero_Lacerta"
 let selectedTraveler = computed(() => traveler.value?.data.name)
 loadBuild(window.location.search.substring(1).split("&").find(q => q.startsWith('build'))?.split("=").slice(1).reduce((acc, current) => { if (current == "") current = "="; return acc + current }) ?? "")
 watch(traveler, () => {
-    history.pushState(null, "", `/build-of-dreams?build=${serializeBuild(traveler.value)}`)
+    history.pushState(null, "", `/build-of-dreams?build=${encodeURI(serializeBuild(traveler.value))}`)
 })
 const selectedPassive = computed(() => traveler.value.data.loadoutTrait.indexOf(traveler.value.loadout.passive.id))
 const selectedDash = computed(() => traveler.value.data.loadoutMovement.indexOf(traveler.value.loadout.dash.id))
