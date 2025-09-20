@@ -5,6 +5,7 @@
                 @update-value="updateTraveler"
                 :options="Object.keys(travelers!).map(t => { return { label: travelers![t as TravelerName].name, value: t } })">
             </NSelect>
+            <NButton @click="shareBuild()">Share build</NButton>
             <NButton @click="copyBuild">Copy build</NButton>
             <NButton @click="readBuild().then(b => loadBuild(b))">Load build</NButton>
             <NButton @click="resetBuild()">Clear build</NButton>
@@ -244,6 +245,8 @@ const loadBuild = (build: string) => {
         traveler.value = deserializeBuild(serTrav, memories.value!, essences.value!, travelers.value!)
         emit('characterChange', traveler.value as BuildTraveler)
         message.success("Loaded build")
+    } else {
+        message.error("Failed to read valid build from clipboard. Make sure you use 'Copy build'")
     }
 }
 
@@ -307,5 +310,10 @@ const resetBuild = () => {
         m.essences.forEach(e => e.slot = undefined)
     })
     window.history.pushState(null, "", "/build-of-dreams/")
+}
+
+const shareBuild = async () => {
+    await navigator.clipboard.writeText(window.location.href)
+    message.success("Copied build URL to clipboard")
 }
 </script>
