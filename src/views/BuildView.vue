@@ -3,9 +3,11 @@
         <NSpace>
             <NSelect title="Character" class="min-w-[300px]" v-model:value="selectedTraveler"
                 @update-value="updateTraveler"
-                :options="Object.keys(travelers!).map(t => { return { label: t.split('_')[1], value: t } })">
+                :options="Object.keys(travelers!).map(t => { return { label: travelers![t as TravelerName].name, value: t } })">
             </NSelect>
             <NButton @click="copyBuild">Copy build</NButton>
+            <NButton @click="readBuild().then(b => loadBuild(b))">Load build</NButton>
+            <NButton @click="resetBuild()">Clear build</NButton>
         </NSpace>
         <NGrid cols="5" x-gap="30">
             <NGridItem span="2">
@@ -166,12 +168,14 @@ import {
     NGridItem,
     NEmpty,
     NEllipsis,
+    useMessage,
 } from 'naive-ui';
 import LZString from "lz-string"
 
 
 const { locale } = useI18n()
 const theme = useThemeVars()
+const message = useMessage()
 
 const draggingMemory = ref<{ item: Memory, index: number }>();
 const draggingEssence = ref<{ item: Essence, index: number }>();
@@ -213,9 +217,19 @@ const onEssenceUnsocket = (socketId: number, essenceId: number) => {
     traveler.value.loadout.memories[socketId].essences[essenceId].slot = undefined
 }
 
+const readBuild = async () => {
+    try {
+        return await navigator.clipboard.readText()
+    } catch {
+        message.error("Failed to read build from clipboard")
+        return ""
+    }
+}
+
 const copyBuild = async () => {
-    if (traveler) {
-        await navigator.clipboard.writeText(window.location.href)
+    if (traveler.value) {
+        await navigator.clipboard.writeText(serializeBuild(traveler.value))
+        message.success("Copied build to clipboard")
     }
 }
 
@@ -223,16 +237,19 @@ const travelers = ref<Travelers>((await axios.get<Travelers>(`/build-of-dreams/d
 const essences = ref<Essences>((await axios.get<Essences>(`/build-of-dreams/data/${locale.value}/essences.json`)).data)
 const memories = ref<Memories>((await axios.get<Memories>(`/build-of-dreams/data/${locale.value}/memories.json`)).data)
 
+const loadBuild = (build: string) => {
+    const decompressed = LZString.decompressFromBase64(build)
+    if (decompressed) {
+        const serTrav: SerializedTraveler = JSON.parse(decompressed)
+        traveler.value = deserializeBuild(serTrav, memories.value!, essences.value!, travelers.value!)
+        emit('characterChange', traveler.value as BuildTraveler)
+        message.success("Loaded build")
+    }
+}
 
-const travelerNames = Object.keys(travelers.value!)
-console.log(travelerNames)
 let traveler = ref<Reactive<BuildTraveler>>(reactive(initTraveler("Hero_Lacerta", travelers.value, memories.value)));
 let selectedTraveler = computed(() => traveler.value?.data.name)
-const decompressed = LZString.decompressFromBase64(window.location.search.substring(1).split("&").find(q => q.startsWith('build'))?.split("=").slice(1).reduce((acc, current) => { if (current == "") current = "="; return acc + current }) ?? "")
-if (decompressed) {
-    const serTrav: SerializedTraveler = JSON.parse(decompressed)
-    traveler.value = reactive<BuildTraveler>(deserializeBuild(serTrav, memories.value!, essences.value!, travelers.value!))
-}
+loadBuild(window.location.search.substring(1).split("&").find(q => q.startsWith('build'))?.split("=").slice(1).reduce((acc, current) => { if (current == "") current = "="; return acc + current }) ?? "")
 watch(traveler, () => {
     history.pushState(null, "", `/build-of-dreams?build=${serializeBuild(traveler.value)}`)
 })
@@ -282,5 +299,12 @@ const updateTraveler = (v: TravelerName) => {
     })
     memoryList.value!.sort((a, b) => compareItem(a, b))
     emit("characterChange", traveler.value! as BuildTraveler);
+}
+
+const resetBuild = () => {
+    traveler.value.loadout.memories.forEach(m => {
+        m.slot = undefined
+        m.essences.forEach(e => e.slot = undefined)
+    })
 }
 </script>
