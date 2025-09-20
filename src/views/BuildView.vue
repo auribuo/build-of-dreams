@@ -112,11 +112,6 @@
         </NGrid>
         <NTabs type="segment" animated class="flex-1">
             <NTabPane name="memories" tab="Memories" display-directive="if">
-                <!-- <NFlex class="w-full mb-3">
-                    <NInput class="flex-1 w-1/2"></NInput>
-                    <NSelect @update-value="filterMemoryTags" class="flex-1 w-1/2" multiple :options="memoryTagSet">
-                    </NSelect>
-                </NFlex> -->
                 <ItemDragList :per-line="4" class="max-h-[50vh] overflow-y-auto" v-model="draggingMemory"
                     :item-list="memoryList">
                 </ItemDragList>
@@ -239,6 +234,7 @@ const essences = ref<Essences>((await axios.get<Essences>(`/build-of-dreams/data
 const memories = ref<Memories>((await axios.get<Memories>(`/build-of-dreams/data/${locale.value}/memories.json`)).data)
 
 const loadBuild = (build: string) => {
+    console.log("build", decodeURIComponent(build))
     const decompressed = LZString.decompressFromBase64(build)
     if (decompressed) {
         try {
@@ -246,17 +242,20 @@ const loadBuild = (build: string) => {
             traveler.value = deserializeBuild(serTrav, memories.value!, essences.value!, travelers.value!)
             emit('characterChange', traveler.value as BuildTraveler)
             message.success("Loaded build")
-        } catch {
+        } catch (e) {
+            console.error("Failed json", e, decompressed)
             message.error("An unexpected error occurred while loading the build")
         }
     } else {
+        console.error("Failed lz", decompressed)
         message.error("Failed to read valid build from clipboard. Make sure you use 'Copy build'")
     }
 }
 
 let traveler = ref<Reactive<BuildTraveler>>(reactive(initTraveler("Hero_Lacerta", travelers.value, memories.value)));
 let selectedTraveler = computed(() => traveler.value?.data.name)
-loadBuild(window.location.search.substring(1).split("&").find(q => q.startsWith('build'))?.split("=").slice(1).reduce((acc, current) => { if (current == "") current = "="; return acc + current }) ?? "")
+const buildURI = window.location.search.substring(1).split("&").find(q => q.startsWith('build'))?.split("=").slice(1).reduce((acc, current) => { if (current == "") current = "="; return acc + current }) ?? ""
+loadBuild(decodeURIComponent(buildURI))
 watch(traveler, () => {
     history.pushState(null, "", `/build-of-dreams?build=${encodeURI(serializeBuild(traveler.value))}`)
 })
@@ -283,10 +282,6 @@ const memoryList = ref<Memory[]>(Object.entries(memories.value).map(mapMemory).m
     return (traveler.value.data.loadoutQ.concat(traveler.value.data.loadoutR)).includes(m.id)
 }))
 memoryList.value.sort((a, b) => compareItem(a, b))
-
-// const memoryTagSet = computed(() => {
-//     return [...new Set(memoryList.value.map(m => m.data.tags).flat())].map(i => { return { label: i, value: i } })
-// })
 
 const updateTraveler = (v: TravelerName) => {
     traveler.value = changeTraveler(traveler.value as BuildTraveler, v, travelers.value!, memories.value!)
@@ -317,7 +312,7 @@ const resetBuild = () => {
 }
 
 const shareBuild = async () => {
-    await navigator.clipboard.writeText(window.location.href)
+    await navigator.clipboard.writeText(`${window.location.origin}/build-of-dreams?build=${serializeBuild(traveler.value)}`)
     message.success("Copied build URL to clipboard")
 }
 </script>
