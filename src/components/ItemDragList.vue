@@ -1,7 +1,7 @@
 <template>
     <NList hoverable :clickable="true" class="select-none">
-        <NListItem v-for="(item, i) in props.itemList" :key="item.id" :draggable="item.remaining_pool > 0"
-            @dragstart="onDragStart(item, i, $event)" @dragend="onDragEnd">
+        <NListItem v-for="item in props.itemList" :key="item.id" :draggable="item.remaining_pool > 0"
+            @dragstart="onDragStart(item, $event)" @dragend="onDragEnd">
             <NThing :title="item.data.name">
                 <template #description>
                     <NSpace size="small">
@@ -38,7 +38,7 @@ const props = defineProps<{
     perLine?: number
 }>()
 
-const model = defineModel<{ item: Item<ItemType>, index: number } | undefined>({ required: false })
+const model = defineModel<Item<ItemType> | undefined>({ required: false })
 
 const rarityColor = (rarity: Rarity): "default" | "success" | "warning" | "error" | "info" => {
     switch (rarity) {
@@ -57,9 +57,8 @@ const rarityColor = (rarity: Rarity): "default" | "success" | "warning" | "error
     }
 }
 
-const onDragStart = (item: Item<ItemType>, index: number, event?: DragEvent) => {
-    model.value = { item, index }
-    console.log(item, index)
+const onDragStart = (item: Item<ItemType>, event?: DragEvent) => {
+    model.value = item
     const img = document.getElementById(`img_${item.id}`)?.firstElementChild as HTMLImageElement;
     if (img && event && event.dataTransfer) {
         const canvas = document.createElement("canvas");

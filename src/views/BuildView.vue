@@ -95,7 +95,7 @@
                                             :src="`/build-of-dreams/data/!Images/${eSocket.slot.data.image}`"
                                             draggable="false" class="rounded-lg z-0 object-cover mx-auto">
                                         </NImage>
-                                        <span class="ml-2 font-bold">
+                                        <span class="ml-2 font-bold flex-1">
                                             {{ eSocket.slot!.data.name }}
                                         </span>
                                     </div>
@@ -140,6 +140,7 @@ import {
     mapMemory,
     renderDescription,
     type Essence,
+    type Item,
     type Memory
 } from '../models/item';
 import {
@@ -177,26 +178,25 @@ const { locale } = useI18n()
 const theme = useThemeVars()
 const message = useMessage()
 
-const draggingMemory = ref<{ item: Memory, index: number }>();
-const draggingEssence = ref<{ item: Essence, index: number }>();
+const draggingMemory = ref<Item<"memory">>();
+const draggingEssence = ref<Item<"essence">>();
 
 const emit = defineEmits<{
     (e: 'characterChange', t: BuildTraveler): void
 }>()
 
 const onMemorySocketDrop = (socketId: number) => {
-    if (draggingMemory.value && traveler.value.loadout.memories[socketId].canSocket(draggingMemory.value.item)) {
-        traveler.value.loadout.memories[socketId].slot = draggingMemory.value.item
-        memoryList.value![draggingMemory.value.index].remaining_pool -= 1
+    if (draggingMemory.value && traveler.value.loadout.memories[socketId].canSocket(draggingMemory.value)) {
+        traveler.value.loadout.memories[socketId].slot = draggingMemory.value
+        memoryList.value![memoryList.value.findIndex(item => item.id == draggingMemory.value?.id)].remaining_pool -= 1
     }
     draggingMemory.value = undefined
 }
 
 const onEssenceSocketDrop = (socketId: number, essenceId: number) => {
-    console.log("aaa")
-    if (draggingEssence.value && traveler.value.loadout.memories[socketId].essences[essenceId].canSocket(draggingEssence.value.item)) {
-        traveler.value.loadout.memories[socketId].essences[essenceId].slot = draggingEssence.value.item
-        essenceList.value![draggingEssence.value.index].remaining_pool -= 1
+    if (draggingEssence.value && traveler.value.loadout.memories[socketId].essences[essenceId].canSocket(draggingEssence.value)) {
+        traveler.value.loadout.memories[socketId].essences[essenceId].slot = draggingEssence.value
+        essenceList.value![essenceList.value.findIndex(e => e.id == draggingEssence.value?.id)].remaining_pool -= 1
     }
     draggingEssence.value = undefined
 }
