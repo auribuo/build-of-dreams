@@ -1,9 +1,10 @@
 import type travelers from "../../public/data/en-US/travelers.json";
-import { MemorySocket } from "./socket";
+import { EssenceSocket, MemorySocket } from "./socket";
 import type { Memories, MemoryName } from "./memories";
-import { mapMemory, type Item, type ItemId, type Memory } from "./item";
+import { mapEssence, mapMemory, type Item, type ItemId, type Memory } from "./item";
 import LZString from "lz-string";
 import type { Reactive } from "vue";
+import type { Essences } from "./essence";
 
 type TravelerName = keyof typeof travelers;
 type TravelerData = {
@@ -151,6 +152,108 @@ const serializeBuild = <T extends BuildTraveler | Reactive<BuildTraveler>>(trave
     return LZString.compressToBase64(s);
 };
 
+const deserializeBuild = (
+    serTrav: SerializedTraveler,
+    memories: Memories,
+    essences: Essences,
+    travelers: Travelers
+): BuildTraveler => {
+    return {
+        id: serTrav.i,
+        data: travelers[serTrav.i],
+        loadout: {
+            dash: mapMemory([serTrav.l.d, memories[serTrav.l.d]]),
+            passive: mapMemory([serTrav.l.p, memories[serTrav.l.p]]),
+            memories: [
+                new MemorySocket(
+                    serTrav.l.m[0].i
+                        ? mapMemory([serTrav.l.m[0].i, memories[serTrav.l.m[0].i]])
+                        : defaultQ(serTrav.i, travelers, memories),
+                    [
+                        new EssenceSocket(
+                            serTrav.l.m[0].e[0].i
+                                ? mapEssence([serTrav.l.m[0].e[0].i, essences[serTrav.l.m[0].e[0].i]])
+                                : undefined
+                        ),
+                        new EssenceSocket(
+                            serTrav.l.m[0].e[1].i
+                                ? mapEssence([serTrav.l.m[0].e[1].i, essences[serTrav.l.m[0].e[1].i]])
+                                : undefined
+                        ),
+                        new EssenceSocket(
+                            serTrav.l.m[0].e[2].i
+                                ? mapEssence([serTrav.l.m[0].e[2].i, essences[serTrav.l.m[0].e[2].i]])
+                                : undefined
+                        ),
+                    ]
+                ),
+                new MemorySocket(
+                    serTrav.l.m[1].i ? mapMemory([serTrav.l.m[1].i, memories[serTrav.l.m[1].i]]) : undefined,
+                    [
+                        new EssenceSocket(
+                            serTrav.l.m[1].e[0].i
+                                ? mapEssence([serTrav.l.m[1].e[0].i, essences[serTrav.l.m[1].e[0].i]])
+                                : undefined
+                        ),
+                        new EssenceSocket(
+                            serTrav.l.m[1].e[1].i
+                                ? mapEssence([serTrav.l.m[1].e[1].i, essences[serTrav.l.m[1].e[1].i]])
+                                : undefined
+                        ),
+                        new EssenceSocket(
+                            serTrav.l.m[1].e[2].i
+                                ? mapEssence([serTrav.l.m[1].e[2].i, essences[serTrav.l.m[1].e[2].i]])
+                                : undefined
+                        ),
+                    ]
+                ),
+                new MemorySocket(
+                    serTrav.l.m[2].i ? mapMemory([serTrav.l.m[2].i, memories[serTrav.l.m[2].i]]) : undefined,
+                    [
+                        new EssenceSocket(
+                            serTrav.l.m[2].e[0].i
+                                ? mapEssence([serTrav.l.m[2].e[0].i, essences[serTrav.l.m[2].e[0].i]])
+                                : undefined
+                        ),
+                        new EssenceSocket(
+                            serTrav.l.m[2].e[1].i
+                                ? mapEssence([serTrav.l.m[2].e[1].i, essences[serTrav.l.m[2].e[1].i]])
+                                : undefined
+                        ),
+                        new EssenceSocket(
+                            serTrav.l.m[2].e[2].i
+                                ? mapEssence([serTrav.l.m[2].e[2].i, essences[serTrav.l.m[2].e[2].i]])
+                                : undefined
+                        ),
+                    ]
+                ),
+                new MemorySocket(
+                    serTrav.l.m[3].i
+                        ? mapMemory([serTrav.l.m[3].i, memories[serTrav.l.m[3].i]])
+                        : defaultR(serTrav.i, travelers, memories),
+                    [
+                        new EssenceSocket(
+                            serTrav.l.m[3].e[0].i
+                                ? mapEssence([serTrav.l.m[3].e[0].i, essences[serTrav.l.m[3].e[0].i]])
+                                : undefined
+                        ),
+                        new EssenceSocket(
+                            serTrav.l.m[3].e[1].i
+                                ? mapEssence([serTrav.l.m[3].e[1].i, essences[serTrav.l.m[3].e[1].i]])
+                                : undefined
+                        ),
+                        new EssenceSocket(
+                            serTrav.l.m[3].e[2].i
+                                ? mapEssence([serTrav.l.m[3].e[2].i, essences[serTrav.l.m[3].e[2].i]])
+                                : undefined
+                        ),
+                    ]
+                ),
+            ],
+        },
+    };
+};
+
 const initTraveler = (id: TravelerName, travelers: Travelers, memories: Memories): BuildTraveler => {
     return {
         id: id,
@@ -176,6 +279,30 @@ const defaultR = (traveler: TravelerName, travelers: Travelers, memories: Memori
     return travelers[traveler].loadoutR.map((id) => mapMemory([id, memories[id]]))[0];
 };
 
+const changeTraveler = (
+    traveler: BuildTraveler,
+    newTraveler: TravelerName,
+    travelers: Travelers,
+    memories: Memories
+): BuildTraveler => {
+    if (traveler.id == newTraveler) {
+        return traveler;
+    }
+    const t: BuildTraveler = initTraveler(newTraveler, travelers, memories);
+    traveler.loadout.memories.forEach((ms, i) => {
+        if (ms.slot == undefined && t.loadout.memories[i].slot) {
+            t.loadout.memories[i].slot = undefined;
+        }
+        if (ms.slot && !(ms.slot.data.rarity == "Character" || ms.slot.data.rarity == "Identity")) {
+            t.loadout.memories[i].slot = ms.slot;
+        }
+        ms.essences.forEach((es, j) => {
+            t.loadout.memories[i].essences[j].slot = es.slot;
+        });
+    });
+    return t;
+};
+
 export {
     type TravelerName,
     type TravelerData,
@@ -185,6 +312,8 @@ export {
     type SerializedTraveler,
     initTraveler,
     serializeBuild,
+    deserializeBuild,
     defaultQ,
     defaultR,
+    changeTraveler,
 };

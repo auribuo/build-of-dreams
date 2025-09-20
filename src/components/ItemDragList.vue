@@ -1,17 +1,37 @@
 <template>
-    <NGrid :cols="perLine ? perLine : 1" x-gap="7">
-        <NGridItem class="" v-for="(item, index) in props.itemList" :key="item.id">
-            <ItemCardSmall :draggable="item.remaining_pool > 0" @dragstart="onDragStart(item, index, $event)"
-                @dragend="onDragEnd" :item="item">
-            </ItemCardSmall>
-        </NGridItem>
-    </NGrid>
+    <NList hoverable :clickable="true" class="select-none">
+        <NListItem v-for="(item, i) in props.itemList" :key="item.id" :draggable="item.remaining_pool > 0"
+            @dragstart="onDragStart(item, i, $event)" @dragend="onDragEnd">
+            <NThing :title="item.data.name">
+                <template #description>
+                    <NSpace size="small">
+                        <NTag :bordered="false" size="small" :type="rarityColor(item.data.rarity)">
+                            {{ item.data.rarity }}
+                        </NTag>
+                        <NDivider v-if="item.data.tags.length > 0" vertical></NDivider>
+                        <NTag v-for="tag in item.data.tags" round size="small">
+                            {{ tag }}
+                        </NTag>
+                    </NSpace>
+                </template>
+                <div class="flex items-start w-full">
+                    <NImage width="40" height="40" preview-disabled lazy
+                        :src="`/build-of-dreams/data/!Images/${item.data.image}`" :id="`img_${item.id}`"
+                        draggable="false" class="rounded-lg z-0 object-cover"
+                        :class="{ 'opacity-30 pointer-events-none select-none': item.remaining_pool == 0 }">
+                    </NImage>
+                    <div class="flex-1 ml-3" v-html="renderDescription(item.data.description)">
+                    </div>
+                </div>
+            </NThing>
+        </NListItem>
+    </NList>
 </template>
 
 <script setup lang="ts">
-import { NGrid, NGridItem } from 'naive-ui';
-import type { Item, ItemList, ItemType } from '../models/item';
-import ItemCardSmall from './ItemCardSmall.vue';
+import { NDivider, NImage, NList, NListItem, NSpace, NTag, NThing } from 'naive-ui';
+import { renderDescription, type Item, type ItemList, type ItemType } from '../models/item';
+import type { Rarity } from '../models/rarity';
 
 const props = defineProps<{
     itemList: ItemList | undefined,
@@ -20,9 +40,27 @@ const props = defineProps<{
 
 const model = defineModel<{ item: Item<ItemType>, index: number } | undefined>({ required: false })
 
+const rarityColor = (rarity: Rarity): "default" | "success" | "warning" | "error" | "info" => {
+    switch (rarity) {
+        case 'Common':
+            return "default"
+        case 'Rare':
+            return "info"
+        case 'Epic':
+            return "default"
+        case 'Legendary':
+            return "error"
+        case 'Unique':
+        case 'Character':
+        case 'Identity':
+            return "warning"
+    }
+}
+
 const onDragStart = (item: Item<ItemType>, index: number, event?: DragEvent) => {
     model.value = { item, index }
-    const img = document.getElementById(`img_${item.id}`) as HTMLImageElement;
+    console.log(item, index)
+    const img = document.getElementById(`img_${item.id}`)?.firstElementChild as HTMLImageElement;
     if (img && event && event.dataTransfer) {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d")!;
@@ -38,4 +76,5 @@ const onDragStart = (item: Item<ItemType>, index: number, event?: DragEvent) => 
 const onDragEnd = () => {
     model.value = undefined;
 };
+
 </script>

@@ -64,7 +64,7 @@ const renderDescription = (desc: string, breakLines: boolean = true): string => 
 
     const spriteRx = /<sprite=([0-9]+)>/gm;
     desc = desc.replace(spriteRx, (_match, _spriteId) => {
-        return ""; // `<img src="/data/!Sprites/${spriteId}.png" height="20" width="20" style="vertical-align: middle;" />`;
+        return ""; // `<img src="/build-of-dreams/data/!Sprites/${_spriteId}.png" height="20" width="20" style="vertical-align: middle;" />`;
     });
 
     if (breakLines) {
