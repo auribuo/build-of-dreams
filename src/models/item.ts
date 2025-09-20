@@ -54,7 +54,7 @@ const itemType = (id: ItemId<"essence" | "memory">): ItemType => {
     return "memory";
 };
 
-type ItemList = Memory[] | Essence[];
+type ItemList = Item<ItemType>[];
 
 const renderDescription = (desc: string, breakLines: boolean = true): string => {
     const colorRx = /<color=([a-z]+|#[a-zA-Z0-9]{6})>(.+?)<\/color>/gm;

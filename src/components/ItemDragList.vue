@@ -1,8 +1,20 @@
 <template>
+    <NFlex class="mb-3">
+        <NInput @update-value="filterItemsText" class="flex-1"></NInput>
+        <NSelect @update-value="filterItemsTag" class="flex-1" :options="itemTagList" multiple></NSelect>
+    </NFlex>
     <NList hoverable :clickable="true" class="select-none">
-        <NListItem v-for="item in props.itemList" :key="item.id" :draggable="item.remaining_pool > 0"
+        <NListItem v-for="item in displayList" :key="item.id" :draggable="item.remaining_pool > 0"
             @dragstart="onDragStart(item, $event)" @dragend="onDragEnd">
-            <NThing :title="item.data.name">
+            <NThing :class="{ 'pointer-events-none': item.remaining_pool == 0 }">
+                <template #header>
+                    <span :class="{ 'line-through': item.remaining_pool == 0 }">
+                        {{ item.data.name }}
+                    </span>
+                    <span v-if="item.remaining_pool == 0" :style="{ color: theme.textColorDisabled }">
+                        (Max reached)
+                    </span>
+                </template>
                 <template #description>
                     <NSpace size="small">
                         <NTag :bordered="false" size="small" :type="rarityColor(item.data.rarity)">
@@ -29,15 +41,24 @@
 </template>
 
 <script setup lang="ts">
-import { NDivider, NImage, NList, NListItem, NSpace, NTag, NThing } from 'naive-ui';
+import { NDivider, NImage, NList, NListItem, NSelect, NSpace, NFlex, NTag, NThing, NInput, useThemeVars } from 'naive-ui';
 import { renderDescription, type Item, type ItemList, type ItemType } from '../models/item';
 import type { Rarity } from '../models/rarity';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
-    itemList: ItemList | undefined,
+    itemList: ItemList,
     perLine?: number
 }>()
 
+const theme = useThemeVars()
+
+const displayTagList = ref<ItemList>(props.itemList)
+const displayTextList = ref<ItemList>(props.itemList)
+const displayList = computed(() => {
+    const set2 = new Set(displayTagList.value);
+    return displayTextList.value.filter(item => set2.has(item));
+})
 const model = defineModel<Item<ItemType> | undefined>({ required: false })
 
 const rarityColor = (rarity: Rarity): "default" | "success" | "warning" | "error" | "info" => {
@@ -75,5 +96,22 @@ const onDragStart = (item: Item<ItemType>, event?: DragEvent) => {
 const onDragEnd = () => {
     model.value = undefined;
 };
+
+const itemTagList = computed(() => {
+    return [...new Set(props.itemList?.flatMap(i => i.data.tags))].map(t => { return { label: t, value: t } })
+})
+
+const filterItemsTag = (tags: string[]) => {
+    if (tags.length == 0) {
+        displayTagList.value = props.itemList
+    } else {
+        displayTagList.value = props.itemList.filter(i => i.data.tags.some(t => tags.includes(t)))
+    }
+}
+
+const filterItemsText = (text: string) => {
+    text = text.toLowerCase()
+    displayTextList.value = props.itemList.filter(i => i.data.description.toLowerCase().includes(text) || i.data.name.toLowerCase().includes(text) || i.id.toLowerCase().includes(text))
+}
 
 </script>

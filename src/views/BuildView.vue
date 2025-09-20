@@ -70,12 +70,12 @@
                             <div class="flex w-[80px] align-center items-center flex-col py-auto"
                                 @drop="onMemorySocketDrop(idx)" @dragover.prevent="" @dragleave="">
                                 <div v-if="socket.slot" @click="onMemoryUnsocket(idx)"
-                                    class="align-center items-center flex flex-col">
+                                    class="align-center items-center flex flex-col cursor-pointer hover:line-through hover:decoration-red-500">
                                     <NImage width="70" height="70" preview-disabled lazy
                                         :src="`/build-of-dreams/data/!Images/${socket.slot.data.image}`"
                                         draggable="false" class="rounded-lg z-0 object-cover mx-auto">
                                     </NImage>
-                                    <div class="text-center mt-3 font-bold">
+                                    <div class="text-center mt-3 font-bold0">
                                         {{ socket.slot!.data.name }}
                                     </div>
                                 </div>
@@ -89,13 +89,13 @@
                                     @drop="onEssenceSocketDrop(idx, eIdx)" @dragover.prevent="" @dragend.prevent=""
                                     class="pb-2 mb-2"
                                     :style="{ borderBottomWidth: '1px', borderBottomColor: theme.dividerColor, borderBottomStyle: 'solid' }">
-                                    <div class="flex items-center flex-row" v-if="eSocket.slot"
-                                        @click="onEssenceUnsocket(idx, eIdx)">
+                                    <div class="flex items-center flex-row hover:line-through cursor-pointer hover:decoration-red-500"
+                                        v-if="eSocket.slot" @click="onEssenceUnsocket(idx, eIdx)">
                                         <NImage width="30" height="30" preview-disabled lazy
                                             :src="`/build-of-dreams/data/!Images/${eSocket.slot.data.image}`"
                                             draggable="false" class="rounded-lg z-0 object-cover mx-auto">
                                         </NImage>
-                                        <span class="ml-2 font-bold flex-1">
+                                        <span :class="`ml-2 font-bold flex-1`">
                                             {{ eSocket.slot!.data.name }}
                                         </span>
                                     </div>
@@ -306,5 +306,6 @@ const resetBuild = () => {
         m.slot = undefined
         m.essences.forEach(e => e.slot = undefined)
     })
+    window.history.pushState(null, "", "/build-of-dreams/")
 }
 </script>
