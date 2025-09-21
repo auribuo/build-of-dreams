@@ -1,5 +1,5 @@
-import type { EssenceData, EssenceName } from "./essence";
-import type { MemoryData, MemoryName } from "./memories";
+import type { EssenceData, EssenceName, Essences } from "./essence";
+import type { Memories, MemoryData, MemoryName } from "./memories";
 import { compareRarity } from "./rarity";
 
 const itemTypes = ["essence", "memory"] as const;
@@ -12,32 +12,45 @@ interface Item<T extends ItemType> {
     data: ItemData<T>;
     kind: T;
     max_pool: T extends "memory" ? 1 | 2 | 4 : 1;
-    remaining_pool: T extends "memory" ? 0 | 1 | 2 | 3 | 4 : 0 | 1;
+    remaining_pool: T extends "memory" ? number : 0 | 1;
 }
 
 type Memory = Item<"memory">;
 type Essence = Item<"essence">;
 
-const mapMemory = (kv: [string, MemoryData]): Memory => {
-    const max_pool = kv[1].rarity == "Character" ? (kv[1].traveler == "Hero_Bismuth" ? 2 : 1) : 4;
+export function mapMemory(id: MemoryName, m: Memories): Memory;
+export function mapMemory(id: undefined, m: Memories): undefined;
+export function mapMemory(id: MemoryName | undefined, m: Memories): Memory | undefined;
+export function mapMemory(id: MemoryName | undefined, m: Memories): Memory | undefined {
+    if (id === undefined) {
+        return undefined;
+    }
+    const data = m[id];
+    const max_pool = data.rarity == "Character" ? (data.traveler == "Hero_Bismuth" ? 2 : 1) : 4;
     return {
-        id: kv[0] as MemoryName,
-        data: kv[1],
+        id,
+        data,
+        max_pool,
         kind: "memory",
-        max_pool: max_pool,
         remaining_pool: max_pool,
     };
-};
+}
 
-const mapEssence = (kv: [string, EssenceData]): Essence => {
+export function mapEssence(id: EssenceName, e: Essences): Essence;
+export function mapEssence(id: undefined, e: Essences): undefined;
+export function mapEssence(id: EssenceName | null | undefined, e: Essences): Essence | undefined;
+export function mapEssence(id: EssenceName | null | undefined, e: Essences): Essence | undefined {
+    if (id === undefined || id === null) {
+        return undefined;
+    }
     return {
-        id: kv[0] as EssenceName,
-        data: kv[1],
+        id,
+        data: e[id],
         kind: "essence",
         max_pool: 1,
         remaining_pool: 1,
     };
-};
+}
 
 const compareItem = <T extends ItemType>(a: Item<T>, b: Item<T>): number => {
     const rc = compareRarity(a.data.rarity, b.data.rarity);
@@ -59,12 +72,12 @@ type ItemList = Item<ItemType>[];
 const renderDescription = (desc: string, breakLines: boolean = true): string => {
     const colorRx = /<color=([a-z]+|#[a-zA-Z0-9]{6})>(.+?)<\/color>/gm;
     desc = desc.replace(colorRx, (_match, color, content) => {
-        return `<span style="color: ${color}">${content}</span>`;
+        return `<span style="color: ${color}; line-height: 22.4px">${content}</span>`;
     });
 
     const spriteRx = /<sprite=([0-9]+)>/gm;
     desc = desc.replace(spriteRx, (_match, _spriteId) => {
-        return ""; // `<img src="/build-of-dreams/data/!Sprites/${_spriteId}.png" height="20" width="20" style="vertical-align: middle;" />`;
+        return `<img src="/build-of-dreams/data/!Sprites/${_spriteId}.png" height="22" width="22" style="display: inline; vertical-align: middle" />`;
     });
 
     if (breakLines) {
@@ -81,8 +94,6 @@ export {
     type Essence,
     type Memory,
     type ItemList,
-    mapEssence,
-    mapMemory,
     compareItem,
     itemType,
     renderDescription,

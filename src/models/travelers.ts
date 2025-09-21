@@ -1,13 +1,22 @@
 import type travelers from "../../public/data/en-US/travelers.json";
-import { EssenceSocket, MemorySocket } from "./socket";
-import type { Memories, MemoryName } from "./memories";
-import { mapEssence, mapMemory, type Item, type ItemId, type Memory } from "./item";
+import { type MemorySocket } from "./socket";
+import { memoriesToList, type Memories, type MemoryName } from "./memories";
+import {
+    compareItem,
+    mapEssence,
+    mapMemory,
+    type Essence,
+    type Item,
+    type ItemId,
+    type ItemType,
+    type Memory,
+} from "./item";
 import LZString from "lz-string";
-import type { Reactive } from "vue";
-import type { Essences } from "./essence";
+import { ref, type Reactive, type Ref } from "vue";
+import { essencesToList, type Essences } from "./essence";
 
 type TravelerName = keyof typeof travelers;
-type TravelerData = {
+interface TravelerData {
     name: string;
     subtitle: string;
     description: string;
@@ -70,28 +79,26 @@ type TravelerData = {
     achievementKey: string; // TODO
     achievementName: string;
     achievementDescription: string;
-};
+}
 
 type Travelers = {
     [K in TravelerName]: TravelerData;
 };
 
-type Traveler = {
+interface Traveler {
     id: TravelerName;
     data: TravelerData;
-};
+}
 
-type BuildTraveler = Traveler & {
+interface BuildTraveler extends Traveler {
     loadout: {
         memories: [MemorySocket, MemorySocket, MemorySocket, MemorySocket];
         dash: Item<"memory">;
         passive: Item<"memory">;
     };
-};
+}
 
-type SerializedEssenceSocket = {
-    i: ItemId<"essence"> | undefined;
-};
+type SerializedEssenceSocket = ItemId<"essence"> | undefined;
 type SerializedMemorySocket = {
     i: ItemId<"memory"> | undefined;
     e: [SerializedEssenceSocket, SerializedEssenceSocket, SerializedEssenceSocket];
@@ -99,57 +106,69 @@ type SerializedMemorySocket = {
 
 type SerializedTraveler = {
     i: TravelerName;
-    l: {
-        m: [SerializedMemorySocket, SerializedMemorySocket, SerializedMemorySocket, SerializedMemorySocket];
-        d: ItemId<"memory">;
-        p: ItemId<"memory">;
-    };
+    m: [SerializedMemorySocket, SerializedMemorySocket, SerializedMemorySocket, SerializedMemorySocket];
+    d: ItemId<"memory">;
+    p: ItemId<"memory">;
 };
 
 const serializeBuild = <T extends BuildTraveler | Reactive<BuildTraveler>>(traveler: T): string => {
     const ser: SerializedTraveler = {
         i: traveler.id,
-        l: {
-            m: [
-                {
-                    i: traveler.loadout.memories[0].slot?.id,
-                    e: [
-                        { i: traveler.loadout.memories[0].essences[0].slot?.id },
-                        { i: traveler.loadout.memories[0].essences[1].slot?.id },
-                        { i: traveler.loadout.memories[0].essences[2].slot?.id },
-                    ],
-                },
-                {
-                    i: traveler.loadout.memories[1].slot?.id,
-                    e: [
-                        { i: traveler.loadout.memories[1].essences[0].slot?.id },
-                        { i: traveler.loadout.memories[1].essences[1].slot?.id },
-                        { i: traveler.loadout.memories[1].essences[2].slot?.id },
-                    ],
-                },
-                {
-                    i: traveler.loadout.memories[2].slot?.id,
-                    e: [
-                        { i: traveler.loadout.memories[2].essences[0].slot?.id },
-                        { i: traveler.loadout.memories[2].essences[1].slot?.id },
-                        { i: traveler.loadout.memories[2].essences[2].slot?.id },
-                    ],
-                },
-                {
-                    i: traveler.loadout.memories[3].slot?.id,
-                    e: [
-                        { i: traveler.loadout.memories[3].essences[0].slot?.id },
-                        { i: traveler.loadout.memories[3].essences[1].slot?.id },
-                        { i: traveler.loadout.memories[3].essences[2].slot?.id },
-                    ],
-                },
-            ],
-            d: traveler.loadout.dash.id,
-            p: traveler.loadout.passive.id,
-        },
+        m: [
+            {
+                i: traveler.loadout.memories[0].slot?.id,
+                e: [
+                    traveler.loadout.memories[0].essences[0].slot?.id,
+                    traveler.loadout.memories[0].essences[1].slot?.id,
+                    traveler.loadout.memories[0].essences[2].slot?.id,
+                ],
+            },
+            {
+                i: traveler.loadout.memories[1].slot?.id,
+                e: [
+                    traveler.loadout.memories[1].essences[0].slot?.id,
+                    traveler.loadout.memories[1].essences[1].slot?.id,
+                    traveler.loadout.memories[1].essences[2].slot?.id,
+                ],
+            },
+            {
+                i: traveler.loadout.memories[2].slot?.id,
+                e: [
+                    traveler.loadout.memories[2].essences[0].slot?.id,
+                    traveler.loadout.memories[2].essences[1].slot?.id,
+                    traveler.loadout.memories[2].essences[2].slot?.id,
+                ],
+            },
+            {
+                i: traveler.loadout.memories[3].slot?.id,
+                e: [
+                    traveler.loadout.memories[3].essences[0].slot?.id,
+                    traveler.loadout.memories[3].essences[1].slot?.id,
+                    traveler.loadout.memories[3].essences[2].slot?.id,
+                ],
+            },
+        ],
+        d: traveler.loadout.dash.id,
+        p: traveler.loadout.passive.id,
     };
     const s = JSON.stringify(ser);
     return LZString.compressToBase64(s);
+};
+
+const deserializeMemory = (
+    serTrav: SerializedTraveler,
+    memories: Memories,
+    essences: Essences,
+    memoryId: 0 | 1 | 2 | 3
+): MemorySocket => {
+    return {
+        slot: mapMemory(serTrav.m[memoryId].i, memories),
+        essences: [
+            { slot: mapEssence(serTrav.m[memoryId].e[0], essences) },
+            { slot: mapEssence(serTrav.m[memoryId].e[1], essences) },
+            { slot: mapEssence(serTrav.m[memoryId].e[2], essences) },
+        ],
+    };
 };
 
 const deserializeBuild = (
@@ -162,97 +181,31 @@ const deserializeBuild = (
         id: serTrav.i,
         data: travelers[serTrav.i],
         loadout: {
-            dash: mapMemory([serTrav.l.d, memories[serTrav.l.d]]),
-            passive: mapMemory([serTrav.l.p, memories[serTrav.l.p]]),
+            dash: mapMemory(serTrav.d, memories),
+            passive: mapMemory(serTrav.p, memories),
             memories: [
-                new MemorySocket(
-                    serTrav.l.m[0].i
-                        ? mapMemory([serTrav.l.m[0].i, memories[serTrav.l.m[0].i]])
-                        : defaultQ(serTrav.i, travelers, memories),
-                    [
-                        new EssenceSocket(
-                            serTrav.l.m[0].e[0].i
-                                ? mapEssence([serTrav.l.m[0].e[0].i, essences[serTrav.l.m[0].e[0].i]])
-                                : undefined
-                        ),
-                        new EssenceSocket(
-                            serTrav.l.m[0].e[1].i
-                                ? mapEssence([serTrav.l.m[0].e[1].i, essences[serTrav.l.m[0].e[1].i]])
-                                : undefined
-                        ),
-                        new EssenceSocket(
-                            serTrav.l.m[0].e[2].i
-                                ? mapEssence([serTrav.l.m[0].e[2].i, essences[serTrav.l.m[0].e[2].i]])
-                                : undefined
-                        ),
-                    ]
-                ),
-                new MemorySocket(
-                    serTrav.l.m[1].i ? mapMemory([serTrav.l.m[1].i, memories[serTrav.l.m[1].i]]) : undefined,
-                    [
-                        new EssenceSocket(
-                            serTrav.l.m[1].e[0].i
-                                ? mapEssence([serTrav.l.m[1].e[0].i, essences[serTrav.l.m[1].e[0].i]])
-                                : undefined
-                        ),
-                        new EssenceSocket(
-                            serTrav.l.m[1].e[1].i
-                                ? mapEssence([serTrav.l.m[1].e[1].i, essences[serTrav.l.m[1].e[1].i]])
-                                : undefined
-                        ),
-                        new EssenceSocket(
-                            serTrav.l.m[1].e[2].i
-                                ? mapEssence([serTrav.l.m[1].e[2].i, essences[serTrav.l.m[1].e[2].i]])
-                                : undefined
-                        ),
-                    ]
-                ),
-                new MemorySocket(
-                    serTrav.l.m[2].i ? mapMemory([serTrav.l.m[2].i, memories[serTrav.l.m[2].i]]) : undefined,
-                    [
-                        new EssenceSocket(
-                            serTrav.l.m[2].e[0].i
-                                ? mapEssence([serTrav.l.m[2].e[0].i, essences[serTrav.l.m[2].e[0].i]])
-                                : undefined
-                        ),
-                        new EssenceSocket(
-                            serTrav.l.m[2].e[1].i
-                                ? mapEssence([serTrav.l.m[2].e[1].i, essences[serTrav.l.m[2].e[1].i]])
-                                : undefined
-                        ),
-                        new EssenceSocket(
-                            serTrav.l.m[2].e[2].i
-                                ? mapEssence([serTrav.l.m[2].e[2].i, essences[serTrav.l.m[2].e[2].i]])
-                                : undefined
-                        ),
-                    ]
-                ),
-                new MemorySocket(
-                    serTrav.l.m[3].i
-                        ? mapMemory([serTrav.l.m[3].i, memories[serTrav.l.m[3].i]])
-                        : defaultR(serTrav.i, travelers, memories),
-                    [
-                        new EssenceSocket(
-                            serTrav.l.m[3].e[0].i
-                                ? mapEssence([serTrav.l.m[3].e[0].i, essences[serTrav.l.m[3].e[0].i]])
-                                : undefined
-                        ),
-                        new EssenceSocket(
-                            serTrav.l.m[3].e[1].i
-                                ? mapEssence([serTrav.l.m[3].e[1].i, essences[serTrav.l.m[3].e[1].i]])
-                                : undefined
-                        ),
-                        new EssenceSocket(
-                            serTrav.l.m[3].e[2].i
-                                ? mapEssence([serTrav.l.m[3].e[2].i, essences[serTrav.l.m[3].e[2].i]])
-                                : undefined
-                        ),
-                    ]
-                ),
+                deserializeMemory(serTrav, memories, essences, 0),
+                deserializeMemory(serTrav, memories, essences, 1),
+                deserializeMemory(serTrav, memories, essences, 2),
+                deserializeMemory(serTrav, memories, essences, 3),
             ],
         },
     };
 };
+
+function emptyMemory(memories: Memories, id?: MemoryName | undefined): MemorySocket {
+    if (id) {
+        return {
+            slot: mapMemory(id, memories!),
+            essences: [{ slot: undefined }, { slot: undefined }, { slot: undefined }],
+        };
+    } else {
+        return {
+            slot: undefined,
+            essences: [{ slot: undefined }, { slot: undefined }, { slot: undefined }],
+        };
+    }
+}
 
 const initTraveler = (id: TravelerName, travelers: Travelers, memories: Memories): BuildTraveler => {
     return {
@@ -260,48 +213,217 @@ const initTraveler = (id: TravelerName, travelers: Travelers, memories: Memories
         data: travelers[id],
         loadout: {
             memories: [
-                new MemorySocket(travelers[id].loadoutQ.map((id) => mapMemory([id, memories[id]]))[0]),
-                new MemorySocket(),
-                new MemorySocket(),
-                new MemorySocket(travelers[id].loadoutR.map((id) => mapMemory([id, memories[id]]))[0]),
+                emptyMemory(memories, travelers[id].loadoutQ[0]),
+                emptyMemory(memories),
+                emptyMemory(memories),
+                emptyMemory(memories, travelers[id].loadoutR[0]),
             ],
-            dash: travelers[id].loadoutMovement.map((id) => mapMemory([id, memories[id]]))[0]!,
-            passive: travelers[id].loadoutTrait.map((id) => mapMemory([id, memories[id]]))[0]!,
+            dash: travelers[id].loadoutMovement.map((id) => mapMemory(id, memories))[0]!,
+            passive: travelers[id].loadoutTrait.map((id) => mapMemory(id, memories))[0]!,
         },
     };
 };
 
-const defaultQ = (traveler: TravelerName, travelers: Travelers, memories: Memories): Memory => {
-    return travelers[traveler].loadoutQ.map((id) => mapMemory([id, memories[id]]))[0];
-};
-
-const defaultR = (traveler: TravelerName, travelers: Travelers, memories: Memories): Memory => {
-    return travelers[traveler].loadoutR.map((id) => mapMemory([id, memories[id]]))[0];
-};
-
-const changeTraveler = (
-    traveler: BuildTraveler,
-    newTraveler: TravelerName,
-    travelers: Travelers,
-    memories: Memories
-): BuildTraveler => {
-    if (traveler.id == newTraveler) {
-        return traveler;
+class LoadoutManager {
+    private traveler: Ref<BuildTraveler>;
+    public essenceList: Ref<Essence[]>;
+    public memoryList: Ref<Memory[]>;
+    public onTravelerChange: ((t: BuildTraveler) => void) | undefined = undefined;
+    constructor(traveler: Ref<BuildTraveler>, memories: Memories, essences: Essences) {
+        this.traveler = traveler;
+        this.memoryList = ref(LoadoutManager.computeMemoryList(this.traveler, memories));
+        this.essenceList = ref(LoadoutManager.computeEssenceList(this.traveler, essences));
     }
-    const t: BuildTraveler = initTraveler(newTraveler, travelers, memories);
-    traveler.loadout.memories.forEach((ms, i) => {
-        if (ms.slot == undefined && t.loadout.memories[i].slot) {
-            t.loadout.memories[i].slot = undefined;
-        }
-        if (ms.slot && !(ms.slot.data.rarity == "Character" || ms.slot.data.rarity == "Identity")) {
-            t.loadout.memories[i].slot = ms.slot;
-        }
-        ms.essences.forEach((es, j) => {
-            t.loadout.memories[i].essences[j].slot = es.slot;
+
+    private static computeMemoryList(t: Ref<BuildTraveler>, memories: Memories): Memory[] {
+        const list = memoriesToList(memories)
+            .map((m) => {
+                if (this.hasTravelerEquipped(t, m)) {
+                    return {
+                        ...m,
+                        remaining_pool: m.remaining_pool - 1,
+                    };
+                }
+                return m;
+            })
+            .filter((m) => {
+                if (m.data.rarity == "Identity") {
+                    return false;
+                }
+                if (m.data.rarity == "Character") {
+                    if (m.data.travelerMemoryLocation == "Movement") {
+                        return false;
+                    }
+                    return m.data.traveler == t.value.id;
+                }
+                return true;
+            });
+        list.sort(compareItem);
+        t.value.loadout.memories.forEach((m) => {
+            if (m.slot && m.slot.data.rarity == "Character") {
+                if (t.value.data.loadoutQ.includes(m.slot.id)) {
+                    t.value.data.loadoutQ
+                        .filter((i) => i != m.slot!.id)
+                        .forEach((i) => list[list.findIndex((l) => l.id == i)].remaining_pool--);
+                } else {
+                    t.value.data.loadoutR
+                        .filter((i) => i != m.slot!.id)
+                        .forEach((i) => list[list.findIndex((l) => l.id == i)].remaining_pool--);
+                }
+            }
         });
-    });
-    return t;
-};
+        return list;
+    }
+
+    private static computeEssenceList(t: Ref<BuildTraveler>, essences: Essences): Essence[] {
+        return essencesToList(essences).map((e) => {
+            if (this.hasTravelerEquipped(t, e)) {
+                return {
+                    ...e,
+                    remaining_pool: 0,
+                };
+            }
+            return e;
+        });
+    }
+
+    private static hasTravelerEquipped(t: Ref<BuildTraveler>, item: Item<ItemType>): boolean {
+        if (item.kind == "memory") {
+            return t.value.loadout.memories.some((m) => m.slot?.id == item.id);
+        } else {
+            return t.value.loadout.memories.some((m) => m.essences.some((e) => e.slot?.id == item.id));
+        }
+    }
+
+    public hasEquipped(item: Item<ItemType>): boolean {
+        return LoadoutManager.hasTravelerEquipped(this.traveler, item);
+    }
+
+    public canEquip(item: Item<"memory"> | undefined): boolean {
+        if (!item) {
+            return true;
+        }
+        if (item.data.rarity == "Character") {
+            return item.data.traveler == this.traveler.value.id;
+        }
+        return true;
+    }
+
+    public loadTraveler(newTraveler: BuildTraveler, memories: Memories) {
+        this.traveler.value.id = newTraveler.id;
+        this.traveler.value.data = newTraveler.data;
+        this.traveler.value.loadout.memories = newTraveler.loadout.memories;
+        this.traveler.value.loadout.dash = newTraveler.loadout.dash;
+        this.traveler.value.loadout.passive = newTraveler.loadout.passive;
+        this.memoryList.value = LoadoutManager.computeMemoryList(this.traveler, memories);
+        this.triggerChange();
+    }
+
+    public changeTraveler(newTraveler: TravelerName, travelers: Travelers, memories: Memories) {
+        if (this.traveler.value.id == newTraveler) {
+            return;
+        }
+        this.traveler.value.id = newTraveler;
+        this.traveler.value.data = travelers[newTraveler];
+        this.traveler.value.loadout.memories.forEach((ms, i) => {
+            if (!this.canEquip(ms.slot)) {
+                this.socket(undefined, i);
+            }
+        });
+        this.traveler.value.loadout.dash = mapMemory(travelers[newTraveler].loadoutMovement[0], memories);
+        this.traveler.value.loadout.passive = mapMemory(travelers[newTraveler].loadoutTrait[0], memories);
+        this.memoryList.value = LoadoutManager.computeMemoryList(this.traveler, memories);
+        this.triggerChange();
+    }
+
+    private triggerChange() {
+        if (this.onTravelerChange) {
+            this.onTravelerChange(this.traveler.value);
+        }
+    }
+
+    public memory(slot: number) {
+        return this.traveler.value.loadout.memories[slot].slot;
+    }
+
+    public get(slot: number): Item<"memory"> | undefined;
+    public get(slot: [number, number]): Item<"essence"> | undefined;
+    public get(slot: number | [number, number]): Item<ItemType> | undefined {
+        if (slot instanceof Array) {
+            return this.traveler.value.loadout.memories[slot[0]].essences[slot[1]].slot;
+        }
+        return this.traveler.value.loadout.memories[slot].slot;
+    }
+
+    private addToPool(item: Item<ItemType> | ItemId<ItemType>) {
+        const id = item instanceof Object ? item.id : item;
+        const kind = item instanceof Object ? item.kind : item.startsWith("Gem") ? "essene" : "memory";
+        if (kind == "memory") {
+            this.memoryList.value[this.memoryList.value.findIndex((m) => m.id == id)].remaining_pool++;
+        } else {
+            this.essenceList.value[this.essenceList.value.findIndex((m) => m.id == id)].remaining_pool++;
+        }
+    }
+
+    private removeFromPool(item: Item<ItemType> | ItemId<ItemType>) {
+        const id = item instanceof Object ? item.id : item;
+        const kind = item instanceof Object ? item.kind : item.startsWith("Gem") ? "essene" : "memory";
+        if (kind == "memory") {
+            this.memoryList.value[this.memoryList.value.findIndex((m) => m.id == id)].remaining_pool--;
+        } else {
+            this.essenceList.value[this.essenceList.value.findIndex((m) => m.id == id)].remaining_pool--;
+        }
+    }
+
+    public socket(item: Item<"memory"> | undefined, slot: number): void;
+    public socket(item: Item<"essence"> | undefined, slot: [number, number]): void;
+    public socket(item: Item<ItemType> | undefined, slot: number | [number, number]): void {
+        if (slot instanceof Array) {
+            const essence = item as Item<"essence"> | undefined;
+            const replaced = this.traveler.value.loadout.memories[slot[0]].essences[slot[1]].slot;
+            this.traveler.value.loadout.memories[slot[0]].essences[slot[1]].slot = essence;
+            if (replaced) {
+                this.addToPool(replaced);
+            }
+            if (essence) {
+                this.removeFromPool(essence);
+            }
+        } else {
+            const memory = item as Item<"memory"> | undefined;
+            const replaced = this.traveler.value.loadout.memories[slot].slot;
+            this.traveler.value.loadout.memories[slot].slot = memory;
+            if (replaced) {
+                this.addToPool(replaced);
+                if (replaced.data.rarity == "Character") {
+                    if (this.traveler.value.data.loadoutQ.includes(replaced.id)) {
+                        this.traveler.value.data.loadoutQ
+                            .filter((i) => i != replaced.id)
+                            .forEach((i) => this.addToPool(i));
+                    } else {
+                        this.traveler.value.data.loadoutR
+                            .filter((i) => i != replaced.id)
+                            .forEach((i) => this.addToPool(i));
+                    }
+                }
+            }
+            if (memory) {
+                this.removeFromPool(memory);
+                if (memory.data.rarity == "Character") {
+                    if (this.traveler.value.data.loadoutQ.includes(memory.id)) {
+                        this.traveler.value.data.loadoutQ
+                            .filter((i) => i != memory.id)
+                            .forEach((i) => this.removeFromPool(i));
+                    } else {
+                        this.traveler.value.data.loadoutR
+                            .filter((i) => i != memory.id)
+                            .forEach((i) => this.removeFromPool(i));
+                    }
+                }
+            }
+        }
+        this.triggerChange();
+    }
+}
 
 export {
     type TravelerName,
@@ -313,7 +435,5 @@ export {
     initTraveler,
     serializeBuild,
     deserializeBuild,
-    defaultQ,
-    defaultR,
-    changeTraveler,
+    LoadoutManager,
 };

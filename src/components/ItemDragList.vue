@@ -1,14 +1,15 @@
 <template>
-    <NFlex class="mb-3">
+    <div class="flex flex-col gap-2 mb-3 sm:flex-row">
         <NInput @update-value="filterItemsText" class="flex-1"></NInput>
         <NSelect @update-value="filterItemsTag" class="flex-1" :options="itemTagList" multiple></NSelect>
-    </NFlex>
-    <NList hoverable :clickable="true" class="select-none">
-        <NListItem v-for="item in displayList" :key="item.id" :draggable="item.remaining_pool > 0"
+    </div>
+    <NList hoverable :clickable="true" class="select-none overflow-y-scroll max-h-[40vh]">
+        <NListItem v-for="item in displayList" :key="item.id" :draggable="item.remaining_pool > 0" @click="model = item"
             @dragstart="onDragStart(item, $event)" @dragend="onDragEnd">
             <NThing :class="{ 'pointer-events-none': item.remaining_pool == 0 }">
                 <template #header>
-                    <span :class="{ 'line-through': item.remaining_pool == 0 }">
+                    <span :class="{ 'line-through': item.remaining_pool == 0 }"
+                        :style="{ color: item.id == model?.id ? theme.primaryColor : theme.textColor1 }">
                         {{ item.data.name }}
                     </span>
                     <span v-if="item.remaining_pool == 0" :style="{ color: theme.textColorDisabled }">
@@ -35,29 +36,38 @@
                     <div class="flex-1 ml-3" v-html="renderDescription(item.data.description)">
                     </div>
                 </div>
+                <template #footer v-if="item.data.achievementDescription">
+                    <span :style="{ color: theme.textColorDisabled }">
+                        Requirements: {{ item.data.achievementDescription }}
+                    </span>
+                </template>
             </NThing>
         </NListItem>
     </NList>
 </template>
 
 <script setup lang="ts">
-import { NDivider, NImage, NList, NListItem, NSelect, NSpace, NFlex, NTag, NThing, NInput, useThemeVars } from 'naive-ui';
+import { NDivider, NImage, NList, NListItem, NSelect, NSpace, NTag, NThing, NInput, useThemeVars } from 'naive-ui';
 import { renderDescription, type Item, type ItemList, type ItemType } from '../models/item';
 import type { Rarity } from '../models/rarity';
-import { computed, ref } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
 
 const props = defineProps<{
-    itemList: ItemList,
+    itemList: Ref<ItemList>,
     perLine?: number
 }>()
 
 const theme = useThemeVars()
 
-const displayTagList = ref<ItemList>(props.itemList)
-const displayTextList = ref<ItemList>(props.itemList)
+const displayTagList = ref<ItemList>(props.itemList.value)
+const displayTextList = ref<ItemList>(props.itemList.value)
 const displayList = computed(() => {
     const set2 = new Set(displayTagList.value);
     return displayTextList.value.filter(item => set2.has(item));
+})
+watch(props.itemList, ls => {
+    displayTagList.value = ls
+    displayTextList.value = ls
 })
 const model = defineModel<Item<ItemType> | undefined>({ required: false })
 
@@ -98,20 +108,20 @@ const onDragEnd = () => {
 };
 
 const itemTagList = computed(() => {
-    return [...new Set(props.itemList?.flatMap(i => i.data.tags))].map(t => { return { label: t, value: t } })
+    return [...new Set(props.itemList?.value.flatMap(i => i.data.tags))].map(t => { return { label: t, value: t } })
 })
 
 const filterItemsTag = (tags: string[]) => {
     if (tags.length == 0) {
-        displayTagList.value = props.itemList
+        displayTagList.value = props.itemList.value
     } else {
-        displayTagList.value = props.itemList.filter(i => i.data.tags.some(t => tags.includes(t)))
+        displayTagList.value = props.itemList.value.filter(i => i.data.tags.some(t => tags.includes(t)))
     }
 }
 
 const filterItemsText = (text: string) => {
     text = text.toLowerCase()
-    displayTextList.value = props.itemList.filter(i => i.data.description.toLowerCase().includes(text) || i.data.name.toLowerCase().includes(text) || i.id.toLowerCase().includes(text))
+    displayTextList.value = props.itemList.value.filter(i => i.data.description.toLowerCase().includes(text) || i.data.name.toLowerCase().includes(text) || i.id.toLowerCase().includes(text))
 }
 
 </script>

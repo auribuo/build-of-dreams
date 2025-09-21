@@ -1,4 +1,5 @@
 import type essences from "../../public/data/en-US/essences.json";
+import { mapEssence, type Essence } from "./item";
 import type { Rarity } from "./rarity";
 
 type EssenceName = keyof typeof essences;
@@ -32,4 +33,8 @@ type Essences = {
     [K in EssenceName]: EssenceData;
 };
 
-export { type EssenceName, type EssenceData, type Essences };
+const essencesToList = (essences: Essences): Essence[] => {
+    return Object.keys(essences).map((id) => mapEssence(id as EssenceName, essences));
+};
+
+export { type EssenceName, type EssenceData, type Essences, essencesToList };

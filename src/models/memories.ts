@@ -1,4 +1,5 @@
-import type memories from "../../public/data/en-US/memories.json";
+import memories from "../../public/data/en-US/memories.json";
+import { mapMemory, type Memory } from "./item";
 import type { Rarity } from "./rarity";
 import type { TravelerName } from "./travelers";
 
@@ -27,7 +28,7 @@ type MemoryData = {
     rarity: Rarity;
     type: "Normal" | "Ultimate";
     traveler: TravelerName | "";
-    travelerMemoryLocation: "Q" | "R" | "";
+    travelerMemoryLocation: "Q" | "R" | "Movement" | "";
     tags: string[];
     image: `${MemoryName}.png`;
     lore: string;
@@ -40,4 +41,8 @@ type Memories = {
     [K in MemoryName]: MemoryData;
 };
 
-export { type MemoryName, type MemoryData, type Memories };
+const memoriesToList = (memories: Memories): Memory[] => {
+    return Object.keys(memories).map((id) => mapMemory(id as MemoryName, memories));
+};
+
+export { type MemoryName, type MemoryData, type Memories, memoriesToList };

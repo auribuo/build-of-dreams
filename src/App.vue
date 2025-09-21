@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { darkTheme, NConfigProvider, NGlobalStyle, NMessageProvider, type GlobalThemeOverrides } from 'naive-ui';
+import { darkTheme, NBackTop, NConfigProvider, NGlobalStyle, NMessageProvider, type GlobalThemeOverrides } from 'naive-ui';
 import BuildView from './views/BuildView.vue';
 import { computed, ref } from 'vue';
 
@@ -43,6 +43,8 @@ function lighten(hex: string, amount: number) {
     <NMessageProvider placement="bottom">
       <NGlobalStyle></NGlobalStyle>
       <main>
+        <NBackTop>
+        </NBackTop>
         <Suspense>
           <BuildView @character-change="t => primary = t.data.color"></BuildView>
           <template #fallback>
